@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ModuleExceptionCodeUtil.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">common-exception</a> &gt; <a href="index.source.html" class="el_package">com.qsy.os.common.exception.code</a> &gt; <span class="el_source">ModuleExceptionCodeUtil.java</span></div><h1>ModuleExceptionCodeUtil.java</h1><pre class="source lang-java linenums">package com.qsy.os.common.exception.code;
+
+import cn.hutool.core.collection.CollectionUtil;
+import cn.hutool.core.stream.SimpleCollector;
+import cn.hutool.core.util.RandomUtil;
+import cn.hutool.core.util.ReUtil;
+import com.qsy.os.common.exception.code.supplier.IModuleExceptionCodesSupplier;
+import com.qsy.os.common.exception.exception.DuplicateExceptionCodeWithinDifferentFamiliesException;
+import com.qsy.os.common.exception.exception.DuplicateModuleIdException;
+import com.qsy.os.common.exception.exception.ExceptionCodeAbsentException;
+import com.qsy.os.common.exception.exception.ExceptionCodeInvalidException;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import static com.qsy.os.common.exception.code.source.ModuleExceptionCodeEnum.SAMPLES;
+import static java.util.stream.Collector.Characteristics.IDENTITY_FINISH;
+
+<span class="nc" id="L28">public class ModuleExceptionCodeUtil {</span>
+
+    private static final Map&lt;Class&lt;? extends IModuleExceptionCodesSupplier&gt;, Map&lt;String, String&gt;&gt;
+<span class="fc" id="L31">        supplierTypeToFullModuleIdToExceptionCodes = new HashMap&lt;&gt;(4);</span>
+
+    public static void clearCache() {
+<span class="fc" id="L34">        supplierTypeToFullModuleIdToExceptionCodes.clear();</span>
+<span class="fc" id="L35">    }</span>
+
+    public static Optional&lt;String&gt; findModuleExceptionCode(IModuleExceptionCodesSupplier moduleExceptionSupplier,
+                                                           String fullModuleId) {
+<span class="fc" id="L39">        return Optional.ofNullable(</span>
+<span class="fc" id="L40">            supplierTypeToFullModuleIdToExceptionCodes.computeIfAbsent(moduleExceptionSupplier.getClass(),</span>
+<span class="fc" id="L41">                    (supplierType) -&gt; toFullModuleIdToExceptionCodes(moduleExceptionSupplier))</span>
+<span class="fc" id="L42">                .get(fullModuleId)</span>
+        );
+    }
+
+    @SuppressWarnings(&quot;OptionalGetWithoutIsPresent&quot;)
+    private static Map&lt;String, String&gt; toFullModuleIdToExceptionCodes(IModuleExceptionCodesSupplier moduleExceptionSupplier) {
+<span class="fc" id="L48">        List&lt;IModuleExceptionCode&gt; moduleExceptionCodes = moduleExceptionSupplier.supply();</span>
+<span class="fc" id="L49">        validate(moduleExceptionCodes);</span>
+<span class="fc" id="L50">        return moduleExceptionCodes.stream().collect(Collectors.toMap(</span>
+            IModuleExceptionCode::getFullModuleId,
+<span class="fc" id="L52">            aEnum -&gt; aEnum.findExceptionCode().get()</span>
+        ));
+    }
+
+    private static void validate(List&lt;IModuleExceptionCode&gt; moduleExceptionCodes) {
+<span class="fc" id="L57">        validateExceptionCode(moduleExceptionCodes);</span>
+<span class="fc" id="L58">        validateDuplicateModuleId(moduleExceptionCodes);</span>
+<span class="fc" id="L59">        validateDuplicateExceptionCodeWithinDifferentFamilies(moduleExceptionCodes);</span>
+<span class="fc" id="L60">    }</span>
+
+    private static void validateExceptionCode(List&lt;IModuleExceptionCode&gt; moduleExceptionCodes) {
+<span class="fc" id="L63">        List&lt;IModuleExceptionCode&gt; noExceptionCodes = moduleExceptionCodes.stream()</span>
+<span class="fc bfc" id="L64" title="All 2 branches covered.">            .filter(moduleExceptionCode -&gt; !moduleExceptionCode.findExceptionCode().isPresent())</span>
+<span class="fc" id="L65">            .collect(Collectors.toList());</span>
+<span class="fc bfc" id="L66" title="All 2 branches covered.">        if (CollectionUtil.isNotEmpty(noExceptionCodes)) {</span>
+<span class="fc" id="L67">            throw new ExceptionCodeAbsentException(noExceptionCodes);</span>
+        }
+
+<span class="fc" id="L70">        Pattern twoUpperAlphabet = Pattern.compile(&quot;^[A-Z]{2}$&quot;);</span>
+<span class="fc" id="L71">        List&lt;IModuleExceptionCode&gt; nonNullAndNonTwoUpperAlphabetExceptionCodes = moduleExceptionCodes.stream()</span>
+<span class="fc bfc" id="L72" title="All 4 branches covered.">            .filter(exceptionCode -&gt; !shouldEscape(exceptionCode) &amp;&amp; nonNullAndNonTwoUpperAlphabet(twoUpperAlphabet, exceptionCode))</span>
+<span class="fc" id="L73">            .collect(Collectors.toList());</span>
+<span class="fc bfc" id="L74" title="All 2 branches covered.">        if (CollectionUtil.isNotEmpty(nonNullAndNonTwoUpperAlphabetExceptionCodes)) {</span>
+<span class="fc" id="L75">            throw new ExceptionCodeInvalidException(nonNullAndNonTwoUpperAlphabetExceptionCodes);</span>
+        }
+<span class="fc" id="L77">    }</span>
+
+    private static boolean shouldEscape(IModuleExceptionCode exceptionCode) {
+<span class="fc bfc" id="L80" title="All 2 branches covered.">        return SAMPLES.getModuleId().equals(exceptionCode.getModuleId()) &amp;&amp;</span>
+<span class="pc bpc" id="L81" title="1 of 2 branches missed.">            SAMPLES.getExceptionCode().equals(exceptionCode.getExceptionCode());</span>
+    }
+
+    private static boolean nonNullAndNonTwoUpperAlphabet(Pattern twoUpperAlphabet, IModuleExceptionCode exceptionCode) {
+<span class="fc bfc" id="L85" title="All 2 branches covered.">        return exceptionCode.getExceptionCode() != null &amp;&amp;</span>
+<span class="fc bfc" id="L86" title="All 2 branches covered.">            !ReUtil.isMatch(twoUpperAlphabet, exceptionCode.getExceptionCode());</span>
+    }
+
+    private static void validateDuplicateModuleId(List&lt;IModuleExceptionCode&gt; moduleExceptionCodes) {
+<span class="fc" id="L90">        Map&lt;String, List&lt;IModuleExceptionCode&gt;&gt; fullModuleIdToExceptionCodes = moduleExceptionCodes.stream()</span>
+<span class="fc" id="L91">            .collect(Collectors.groupingBy(IModuleExceptionCode::getFullModuleId));</span>
+
+<span class="fc" id="L93">        List&lt;Map.Entry&lt;String, List&lt;IModuleExceptionCode&gt;&gt;&gt; duplicateFullModuleIdToExceptionCodes = fullModuleIdToExceptionCodes.entrySet()</span>
+<span class="fc" id="L94">            .stream()</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">            .filter(entry -&gt; entry.getValue().size() &gt; 1)</span>
+<span class="fc" id="L96">            .collect(Collectors.toList());</span>
+
+<span class="fc bfc" id="L98" title="All 2 branches covered.">        if (CollectionUtil.isNotEmpty(duplicateFullModuleIdToExceptionCodes)) {</span>
+<span class="fc" id="L99">            throw new DuplicateModuleIdException(duplicateFullModuleIdToExceptionCodes);</span>
+        }
+<span class="fc" id="L101">    }</span>
+
+    @SuppressWarnings(&quot;OptionalGetWithoutIsPresent&quot;)
+    private static void validateDuplicateExceptionCodeWithinDifferentFamilies(
+        List&lt;IModuleExceptionCode&gt; moduleExceptionCodes) {
+        List&lt;Map.Entry&lt;String, HashSet&lt;IModuleExceptionCode&gt;&gt;&gt;
+<span class="fc" id="L107">            duplicateExceptionCodeWithinDifferentFamiliesExceptionCodeToEnumEntries =</span>
+<span class="fc" id="L108">            moduleExceptionCodes.stream().collect(</span>
+<span class="fc" id="L109">                    Collectors.groupingBy(aEnum -&gt; aEnum.findExceptionCode().get(),</span>
+                        new SimpleCollector&lt;IModuleExceptionCode,
+                            HashSet&lt;IModuleExceptionCode&gt;,
+                            HashSet&lt;IModuleExceptionCode&gt;&gt;(
+                            HashSet::new,
+                            HashSet::add,
+                            (aSet, bSet) -&gt; {
+<span class="nc" id="L116">                                aSet.addAll(bSet);</span>
+<span class="nc" id="L117">                                return aSet;</span>
+                            }
+<span class="fc" id="L119">                            , new HashSet&lt;&gt;(Collections.singleton(IDENTITY_FINISH))</span>
+                        ))
+                )
+<span class="fc" id="L122">                .entrySet().stream().filter(entry -&gt; {</span>
+<span class="fc" id="L123">                    HashSet&lt;IModuleExceptionCode&gt; sameExceptionCodeEnums = entry.getValue();</span>
+<span class="fc" id="L124">                    return doesBelongToDifferentRoot(sameExceptionCodeEnums);</span>
+                })
+<span class="fc" id="L126">                .collect(Collectors.toList());</span>
+<span class="fc bfc" id="L127" title="All 2 branches covered.">        if (CollectionUtil.isNotEmpty(duplicateExceptionCodeWithinDifferentFamiliesExceptionCodeToEnumEntries)) {</span>
+<span class="fc" id="L128">            throw new DuplicateExceptionCodeWithinDifferentFamiliesException(</span>
+                duplicateExceptionCodeWithinDifferentFamiliesExceptionCodeToEnumEntries,
+<span class="fc" id="L130">                getAvailableExceptionCodes(moduleExceptionCodes));</span>
+        }
+<span class="fc" id="L132">    }</span>
+
+    private static List&lt;String&gt; getAvailableExceptionCodes(List&lt;IModuleExceptionCode&gt; moduleExceptionCodes) {
+<span class="fc" id="L135">        Set&lt;String&gt; nonAvailableExceptionCodes = moduleExceptionCodes.stream()</span>
+<span class="fc" id="L136">            .map(IModuleExceptionCode::getExceptionCode)</span>
+<span class="fc" id="L137">            .filter(Objects::nonNull)</span>
+<span class="fc" id="L138">            .collect(Collectors.toSet());</span>
+<span class="fc" id="L139">        String allUpperAlphabet = RandomUtil.BASE_CHAR.toUpperCase();</span>
+<span class="fc" id="L140">        List&lt;String&gt; allUpperAlphabets = Arrays.asList(allUpperAlphabet.split(&quot;&quot;));</span>
+<span class="fc" id="L141">        return allUpperAlphabets.stream()</span>
+<span class="fc" id="L142">            .flatMap(upperAlphabet -&gt; allUpperAlphabets.stream().map(upperAlphabet::concat))</span>
+<span class="fc bfc" id="L143" title="All 2 branches covered.">            .filter(exceptionCode -&gt; !nonAvailableExceptionCodes.contains(exceptionCode))</span>
+<span class="fc" id="L144">            .collect(Collectors.toList());</span>
+    }
+
+    private static boolean doesBelongToDifferentRoot(HashSet&lt;IModuleExceptionCode&gt; sameExceptionCodeEnums) {
+<span class="fc" id="L148">        return sameExceptionCodeEnums.stream().map(IModuleExceptionCode::getRoot)</span>
+<span class="fc" id="L149">            .map(IModuleExceptionCode::getFullModuleId)</span>
+<span class="fc bfc" id="L150" title="All 2 branches covered.">            .distinct().count() &gt; 1;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

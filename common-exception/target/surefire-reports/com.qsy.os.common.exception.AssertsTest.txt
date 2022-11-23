@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.qsy.os.common.exception.AssertsTest
+-------------------------------------------------------------------------------
+Tests run: 95, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.93 s - in com.qsy.os.common.exception.AssertsTest

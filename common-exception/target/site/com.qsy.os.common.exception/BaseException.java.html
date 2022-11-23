@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BaseException.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">common-exception</a> &gt; <a href="index.source.html" class="el_package">com.qsy.os.common.exception</a> &gt; <span class="el_source">BaseException.java</span></div><h1>BaseException.java</h1><pre class="source lang-java linenums">package com.qsy.os.common.exception;
+
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+import javax.annotation.Nullable;
+import java.text.MessageFormat;
+import java.util.Objects;
+import java.util.function.Supplier;
+
+import static lombok.AccessLevel.PROTECTED;
+
+@Getter
+@SuppressWarnings(&quot;unchecked&quot;)
+<span class="fc" id="L15">@NoArgsConstructor(access = PROTECTED)</span>
+public class BaseException extends RuntimeException {
+
+<span class="fc" id="L18">    protected IExceptionCode responseEnum;</span>
+
+<span class="fc" id="L20">    protected Object[] args;</span>
+
+<span class="fc" id="L22">    protected String message;</span>
+
+<span class="fc" id="L24">    protected Object data;</span>
+
+    public static &lt;T extends BaseException&gt; T of(IExceptionCode responseEnum, Object... args) {
+<span class="fc" id="L27">        return (T) of(BaseException::new, responseEnum, args);</span>
+    }
+
+    public static &lt;T extends BaseException&gt; T ofWithCause(
+        IExceptionCode responseEnum, Throwable cause, Object... args) {
+<span class="fc" id="L32">        return (T) ofWithCause(BaseException::new, responseEnum, cause, args);</span>
+    }
+
+    public static &lt;T extends BaseException&gt; T ofWithData(
+        IExceptionCode responseEnum, Object data, Object... args) {
+<span class="fc" id="L37">        return (T) ofWithData(BaseException::new, responseEnum, data, args);</span>
+    }
+
+    public static &lt;T extends BaseException&gt; T ofWithCauseAndData(
+        IExceptionCode responseEnum, Throwable cause, Object data, Object... args) {
+<span class="fc" id="L42">        return (T) ofWithCauseAndData(BaseException::new, responseEnum, cause, data, args);</span>
+    }
+
+    public static &lt;T extends BaseException&gt; T of(
+        Supplier&lt;T&gt; exceptionSupplier, IExceptionCode responseEnum) {
+<span class="fc" id="L47">        T baseException = exceptionSupplier.get();</span>
+<span class="fc" id="L48">        baseException.responseEnum = responseEnum;</span>
+<span class="fc" id="L49">        baseException.message = responseEnum.getMessage();</span>
+<span class="fc" id="L50">        return baseException;</span>
+    }
+
+    public static &lt;T extends BaseException&gt; T of(
+        Supplier&lt;T&gt; exceptionSupplier, IExceptionCode responseEnum, Object... args) {
+<span class="fc" id="L55">        T baseException = exceptionSupplier.get();</span>
+<span class="fc" id="L56">        baseException.responseEnum = responseEnum;</span>
+<span class="fc" id="L57">        baseException.args = args;</span>
+<span class="fc" id="L58">        baseException.message = MessageFormat.format(responseEnum.getMessage(), args);</span>
+<span class="fc" id="L59">        return baseException;</span>
+    }
+
+    public static &lt;T extends BaseException&gt; T ofWithCause(
+        Supplier&lt;T&gt; exceptionSupplier, IExceptionCode responseEnum, Throwable cause, Object... args) {
+<span class="fc" id="L64">        T baseException = of(exceptionSupplier, responseEnum, args);</span>
+<span class="fc" id="L65">        baseException.initCause(cause);</span>
+<span class="fc" id="L66">        return baseException;</span>
+    }
+
+    public static &lt;T extends BaseException&gt; T ofWithData(
+        Supplier&lt;T&gt; exceptionSupplier, IExceptionCode responseEnum, Object data, Object... args) {
+<span class="fc" id="L71">        T baseException = of(exceptionSupplier, responseEnum, args);</span>
+<span class="fc" id="L72">        baseException.data = data;</span>
+<span class="fc" id="L73">        return baseException;</span>
+    }
+
+    public static &lt;T extends BaseException&gt; T ofWithCauseAndData(
+        Supplier&lt;T&gt; exceptionSupplier,
+        IExceptionCode responseEnum, Throwable cause, Object data, Object... args) {
+<span class="fc" id="L79">        T baseException = of(exceptionSupplier, responseEnum, args);</span>
+<span class="fc" id="L80">        baseException.data = data;</span>
+<span class="fc" id="L81">        baseException.initCause(cause);</span>
+<span class="fc" id="L82">        return baseException;</span>
+    }
+
+    public &lt;T&gt; T doThrow() {
+<span class="nc" id="L86">        throw this;</span>
+    }
+
+    @Override
+    public boolean equals(Object o) {
+<span class="fc bfc" id="L91" title="All 2 branches covered.">        if (this == o) return true;</span>
+<span class="fc bfc" id="L92" title="All 4 branches covered.">        if (o == null || getClass() != o.getClass()) return false;</span>
+<span class="fc" id="L93">        BaseException that = (BaseException) o;</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">        return Objects.equals(responseEnum, that.responseEnum)</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">            &amp;&amp; Objects.equals(message, that.message)</span>
+<span class="fc bfc" id="L96" title="All 2 branches covered.">            &amp;&amp; Objects.equals(data, that.data);</span>
+    }
+
+    @Override
+    public int hashCode() {
+<span class="fc" id="L101">        return Objects.hash(responseEnum, message, data);</span>
+    }
+
+    @Nullable
+    public ExceptionSourceEnum getExceptionSource() {
+<span class="fc" id="L106">        String code = responseEnum.getCode();</span>
+<span class="fc" id="L107">        String exceptionSourceCode = code.substring(0, ExceptionSettings.EXCEPTION_SOURCE_CODE_LENGTH);</span>
+<span class="fc" id="L108">        return ExceptionSourceEnum.parseFromCode(exceptionSourceCode);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

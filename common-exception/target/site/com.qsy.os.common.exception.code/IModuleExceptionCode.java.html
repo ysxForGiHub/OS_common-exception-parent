@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>IModuleExceptionCode.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">common-exception</a> &gt; <a href="index.source.html" class="el_package">com.qsy.os.common.exception.code</a> &gt; <span class="el_source">IModuleExceptionCode.java</span></div><h1>IModuleExceptionCode.java</h1><pre class="source lang-java linenums">package com.qsy.os.common.exception.code;
+
+import java.util.Optional;
+
+public interface IModuleExceptionCode {
+    &lt;E extends IModuleExceptionCode&gt; E getParent();
+
+    String getModuleId();
+
+    String getExceptionCode();
+
+    default String getSimpleQualifiedExceptionCodeName() {
+<span class="fc" id="L13">        return this.getClass().getSimpleName().concat(&quot;.&quot;).concat(this.toString());</span>
+    }
+
+    static String getFullModuleId(IModuleExceptionCode moduleExceptionCode) {
+<span class="fc bfc" id="L17" title="All 2 branches covered.">        if (moduleExceptionCode.getParent() == null) {</span>
+<span class="fc" id="L18">            return moduleExceptionCode.getModuleId();</span>
+        }
+<span class="fc" id="L20">        return getFullModuleId(moduleExceptionCode.getParent()) + moduleExceptionCode.getModuleId();</span>
+    }
+
+    static IModuleExceptionCode getRoot(IModuleExceptionCode aEnum) {
+<span class="fc" id="L24">        IModuleExceptionCode root = null;</span>
+        do {
+<span class="fc bfc" id="L26" title="All 2 branches covered.">            if (aEnum.getParent() == null) {</span>
+<span class="fc" id="L27">                root = aEnum;</span>
+            }
+<span class="fc" id="L29">            aEnum = aEnum.getParent();</span>
+<span class="fc bfc" id="L30" title="All 2 branches covered.">        } while (aEnum != null);</span>
+<span class="fc" id="L31">        return root;</span>
+    }
+
+    default Optional&lt;String&gt; findExceptionCode() {
+<span class="fc" id="L35">        IModuleExceptionCode aEnum = this;</span>
+        String exceptionCode;
+        do {
+<span class="fc" id="L38">            exceptionCode = aEnum.getExceptionCode();</span>
+<span class="fc" id="L39">            aEnum = aEnum.getParent();</span>
+<span class="fc bfc" id="L40" title="All 4 branches covered.">        } while (aEnum != null &amp;&amp; exceptionCode == null);</span>
+<span class="fc" id="L41">        return Optional.ofNullable(exceptionCode);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>
